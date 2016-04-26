@@ -54,7 +54,8 @@ public class Client {
             msg = (String) in.readObject();
             System.out.println("Message from other client: " + msg);
         } catch (IOException | ClassNotFoundException ex) {
-            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            System.out.println("Server disconnected");
+            System.exit(1);
         }
     }
 
