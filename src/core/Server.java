@@ -43,6 +43,7 @@ public class Server {
             } catch (IOException ex) {
                 System.err.println("Client connection failed...");
             }
+            System.out.println("User with IP: "+client.getInetAddress()+" is connecting...");
             ClientThread c = new ClientThread(userID++, client); //add userID
             clients.add(c);
 
@@ -83,14 +84,16 @@ public class Server {
 
         public void receiveMessage() {
             String message = null;
-            do {
+            while (true) {
                 try {
                     message = (String) in.readObject();
                 } catch (IOException | ClassNotFoundException ex) {
-                    Logger.getLogger(ClientThread.class.getName()).log(Level.SEVERE, null, ex);
+                    System.out.println("CLient with ID: "+clientID+" disconnected");
+                    clients.remove(this);
+                    break;
                 }
                 sendToAll(this.clientID, message);
-            } while (true);
+            }
         }
 
         public void write(String msg) {
