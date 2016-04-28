@@ -43,12 +43,20 @@ public class Server {
             } catch (IOException ex) {
                 System.err.println("Client connection failed...");
             }
-            System.out.println("User with IP: "+client.getInetAddress()+" is connecting...");
+            System.out.println("User with IP: " + client.getInetAddress() + " is connected");
             ClientThread c = new ClientThread(userID++, client); //add userID
             clients.add(c);
 
             Thread clThread = new Thread(c);
             clThread.start();
+        }
+    }
+
+    public void sendToClient(int clientID, String msg) {
+        for (ClientThread client : clients) {
+            if (clientID == client.getClientID()) {
+                client.write(msg);
+            }
         }
     }
 
@@ -60,9 +68,25 @@ public class Server {
         }
     }
 
+//    public void sendListOfClients() {
+//        for (ClientThread client : clients) {
+//            client.sendClients(availableClients());
+//        }
+//    }
+    public String[] availableClients() {
+        String[] avClients = new String[clients.size()];
+        for (int client = 0; client < avClients.length; client++) {
+            avClients[client] = String.valueOf(clients.get(client).getClientID());
+        }
+        return avClients;
+    }
+
     public class ClientThread implements Runnable {
 
         private int clientID;
+        private int destinationID;
+
+        String[] onClients;
 
         private Socket client = null;
 
@@ -83,16 +107,22 @@ public class Server {
         }
 
         public void receiveMessage() {
+            boolean broadcast = (destinationID == -1);
             String message = null;
             while (true) {
                 try {
                     message = (String) in.readObject();
                 } catch (IOException | ClassNotFoundException ex) {
-                    System.out.println("CLient with ID: "+clientID+" disconnected");
+                    System.out.println("CLient with ID: " + clientID + " disconnected");
+                    closeConnection();
                     clients.remove(this);
                     break;
                 }
-                sendToAll(this.clientID, message);
+                if (broadcast) {
+                    sendToAll(this.clientID, message);
+                } else {
+                    sendToClient(destinationID, message);
+                }
             }
         }
 
@@ -104,8 +134,61 @@ public class Server {
             }
         }
 
+        public int getClientID() {
+            return clientID;
+        }
+
+        public void onlineClients() {
+            int ref;
+            do {
+                onClients = availableClients();
+                try {
+                    out.writeObject(onClients);
+                } catch (IOException ex) {
+                    Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                ref = selectDestination();
+            } while (ref == 0);
+        }
+
+        public int selectDestination() {
+            int destIndex = -10;
+            String destText = null;
+            try {
+                destText = (String) in.readObject();
+            } catch (IOException ex) {
+                System.out.println("CLient with ID: " + clientID + " disconnected");
+                closeConnection();
+                clients.remove(this);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            if ((destText.equals("def")) && (destText!=null)) {
+                    destinationID = -1;
+                    return destinationID;
+                } else {
+                    destIndex = Integer.valueOf(destText);
+                }
+
+                if ((destIndex != 0) && (destIndex != -10)) {
+                    this.destinationID = Integer.valueOf(onClients[destIndex - 1]);
+                }
+            return destIndex;
+        }
+
+        public void closeConnection() {
+            try {
+                in.close();
+                out.close();
+                client.close();
+            } catch (IOException closeEx) {
+                closeEx.printStackTrace();
+            }
+        }
+
         @Override
         public void run() {
+            onlineClients();
             receiveMessage();
         }
 

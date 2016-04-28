@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 public class Client {
 
     int port;
+    int dest = 0;
 
     Scanner input = new Scanner(System.in);
 
@@ -39,10 +40,12 @@ public class Client {
         } catch (IOException initClientEx) {
             initClientEx.printStackTrace(System.err);
         }
+        System.out.println("Successfully connected to: " + connection.getInetAddress());
     }
 
     public void newMessage() {
-        System.out.print("Your message:");
+        System.out.println("Your message:");
+        System.out.print(">");
         String msg = input.nextLine();
         sendMessage(msg);
     }
@@ -63,11 +66,43 @@ public class Client {
         try {
             out.writeObject(msg);
         } catch (IOException e) {
-            e.printStackTrace(System.err);
+            System.out.println("Server disconnected");
+            System.exit(1);
         }
     }
 
+    public void chooseClient() {
+        String CL = null;
+        do {
+            String[] availableClients = null;
+            try {
+                availableClients = (String[]) in.readObject();
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            System.out.println("\nThe online clients right now are: ");
+            for (int cl = 0; cl < availableClients.length; cl++) {
+                System.out.println((cl + 1) + ". " + availableClients[cl]);
+            }
+            System.out.println("Type the number you wish to talk to or type def for broadcast messages"); 
+            System.out.println("You can also type 0 to refresh the list! ");
+            CL = input.nextLine();
+            try {
+                out.writeObject(CL);
+            } catch (IOException ex) {
+                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        } while (CL.equals("0"));
+    }
+
     public void commProc() {
+        if (dest == 0) {
+            System.out.println("You should choose a client to talk to:");
+            chooseClient();
+        }
+
         Runnable newM = new Runnable() {
 
             @Override
