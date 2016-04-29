@@ -59,6 +59,14 @@ public class Server {
             }
         }
     }
+    
+    public void sendToClient(String nick, String msg) {
+        for (ClientThread client : clients) {
+            if (nick.equals(client.getNickName())) {
+                client.write(msg);
+            }
+        }
+    }
 
     public void sendToAll(int clientID, String msg) {
         for (ClientThread client : clients) {
@@ -76,7 +84,7 @@ public class Server {
     public String[] availableClients() {
         String[] avClients = new String[clients.size()];
         for (int client = 0; client < avClients.length; client++) {
-            avClients[client] = String.valueOf(clients.get(client).getClientID());
+                avClients[client] = String.valueOf(clients.get(client).getNickName());
         }
         return avClients;
     }
@@ -85,7 +93,11 @@ public class Server {
 
         private int clientID;
         private int destinationID;
+        
+        private String nickname;
+        private String destinationNick;
 
+        String[] none = {"No one is active right now"};
         String[] onClients;
 
         private Socket client = null;
@@ -105,6 +117,20 @@ public class Server {
             }
 
         }
+        
+        public void setNickname () {
+            try {
+                this.nickname = (String) in.readObject();
+            } catch (IOException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (ClassNotFoundException ex) {
+                Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        
+        public String getNickName() {
+            return this.nickname;
+        }
 
         public void receiveMessage() {
             boolean broadcast = (destinationID == -1);
@@ -121,7 +147,7 @@ public class Server {
                 if (broadcast) {
                     sendToAll(this.clientID, message);
                 } else {
-                    sendToClient(destinationID, message);
+                    sendToClient(destinationNick, message);
                 }
             }
         }
@@ -143,7 +169,10 @@ public class Server {
             do {
                 onClients = availableClients();
                 try {
-                    out.writeObject(onClients);
+                    if (onClients.length!=0)
+                        out.writeObject(onClients);
+                    else
+                        out.writeObject(none);
                 } catch (IOException ex) {
                     Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -157,21 +186,22 @@ public class Server {
             try {
                 destText = (String) in.readObject();
             } catch (IOException ex) {
-                System.out.println("CLient with ID: " + clientID + " disconnected");
                 closeConnection();
                 clients.remove(this);
             } catch (ClassNotFoundException ex) {
                 Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
             }
-            if ((destText.equals("def")) && (destText!=null)) {
+            if (destText!=null) {
+                if (destText.equals("def")) {
                     destinationID = -1;
                     return destinationID;
                 } else {
                     destIndex = Integer.valueOf(destText);
                 }
-
+            }
                 if ((destIndex != 0) && (destIndex != -10)) {
-                    this.destinationID = Integer.valueOf(onClients[destIndex - 1]);
+                    this.destinationID = destIndex;
+                    this.destinationNick = onClients[destIndex - 1];
                 }
             return destIndex;
         }
@@ -188,6 +218,7 @@ public class Server {
 
         @Override
         public void run() {
+            setNickname();
             onlineClients();
             receiveMessage();
         }

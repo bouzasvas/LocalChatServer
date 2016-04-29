@@ -8,6 +8,7 @@ package chatserver;
 import core.Server;
 import client.Client;
 import java.util.Scanner;
+
 /**
  *
  * @author Vassilis
@@ -21,20 +22,25 @@ public class ChatServer {
         // TODO code application logic here
         Server server = null;
         Client client = null;
-        
+
         Scanner in = new Scanner(System.in);
-        
+
         System.out.println("Enter 1 for Server or 2 for Client");
         System.out.print(">");
+
+        int funct;
         
-        int funct = in.nextInt();
-        
-        if (funct == 1) {
-            server = new Server(9999);
-        }
-        else if (funct == 2) {
-            client = new Client(9999);
-        }
+        do {
+            funct = in.nextInt();
+            
+            if (funct == 1) {
+                server = new Server(9999);
+            } else if (funct == 2) {
+                client = new Client(9999);
+            } else {
+                System.out.println("Select one of the above choices");
+            }
+        } while (funct > 2);
     }
-    
+
 }

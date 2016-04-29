@@ -38,7 +38,8 @@ public class Client {
             out = new ObjectOutputStream(connection.getOutputStream());
             in = new ObjectInputStream(connection.getInputStream());
         } catch (IOException initClientEx) {
-            initClientEx.printStackTrace(System.err);
+            System.err.println("Probably the server is offline....");
+            System.exit(2);
         }
         System.out.println("Successfully connected to: " + connection.getInetAddress());
     }
@@ -86,18 +87,56 @@ public class Client {
             for (int cl = 0; cl < availableClients.length; cl++) {
                 System.out.println((cl + 1) + ". " + availableClients[cl]);
             }
-            System.out.println("Type the number you wish to talk to or type def for broadcast messages"); 
+            System.out.println("Type the number you wish to talk to or type def for broadcast messages");
             System.out.println("You can also type 0 to refresh the list! ");
             CL = input.nextLine();
-            try {
-                out.writeObject(CL);
-            } catch (IOException ex) {
-                Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+
+            if (validChoice(CL, availableClients.length)) {
+                try {
+                    out.writeObject(CL);
+                } catch (IOException ex) {
+                    Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                try {
+                    CL = "0";
+                    out.writeObject(CL);
+                } catch (IOException ex) {
+                    Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
+
         } while (CL.equals("0"));
     }
 
+    private boolean validChoice(String choice, int length) {
+        int ch = 100;
+        try {
+            ch = Integer.valueOf(choice);
+        } catch (NumberFormatException ex) {
+           return true;
+        }
+        if (ch <= length) {
+            return true;
+        } else {
+            System.out.println("There is no client for this selection");
+            return false;
+        }
+    }
+
+    private void setNickname() {
+        System.out.println("Your nickname at the lobby?");
+        System.out.print(">");
+        String nickname = input.nextLine();
+        try {
+            out.writeObject(nickname);
+        } catch (IOException ex) {
+            Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
     public void commProc() {
+        setNickname();
         if (dest == 0) {
             System.out.println("You should choose a client to talk to:");
             chooseClient();
@@ -129,4 +168,5 @@ public class Client {
         Thread gMes = new Thread(getM);
         gMes.start();
     }
+
 }
